@@ -6,6 +6,30 @@ from django.contrib.auth.hashers import make_password
 
 
 @csrf_exempt
+def get_User_profile_view(request):
+    user = request.user 
+
+    user_id = user.id
+    
+    if not user_id:
+        return JsonResponse({"success": False, "message": "User not authenticated"}, status=401)  
+      
+    try:
+        user = User.objects.get(id=user_id)     
+    except User.DoesNotExist:
+        return JsonResponse({"success": False, "message": "User not found"}, status=404)
+    
+
+    profile_data = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+    }
+
+    return JsonResponse({"success": True, "profile": profile_data})
+
+
+@csrf_exempt
 def update_profile_view(request):
     if request.method == "POST":
         try:

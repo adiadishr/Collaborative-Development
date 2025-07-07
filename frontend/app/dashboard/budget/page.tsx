@@ -37,13 +37,14 @@ const categories = [
 
 interface Budget {
   id: number
+  user_id: number
+  username: string
   category: string
   limit: number
   spent: number
 }
 
 export default function BudgetPage() {
-
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null)
   const [newBudget, setNewBudget] = useState({ category: "", limit: 0 })
@@ -63,11 +64,9 @@ export default function BudgetPage() {
   }
 
   const handleSaveBudget = async () => {
-    if (!editingBudget) return           // we only edit, no more “add” path
-    if (newBudget.limit <= 0) return
+    if (!editingBudget || newBudget.limit <= 0) return
 
     try {
-      // optimistic UI: update local list right away (optional)
       setBudgets(
         budgets.map(b =>
           b.id === editingBudget.id ? { ...b, limit: Number(newBudget.limit) } : b
@@ -76,24 +75,23 @@ export default function BudgetPage() {
 
       const res = await fetch(`http://localhost:8000/budget/edit/${editingBudget.id}/`, {
         method: "PATCH",
-        credentials: "include",  // must be here to send session cookie
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ limit: newBudget.limit }),
       })
 
       if (!res.ok) {
-        const error = res.statusText
-        console.log(error)
+        console.log("Failed to update")
+        return
       }
 
-      // refresh from server response (optional but safer)
       const updated = await res.json()
       setBudgets(
         budgets.map(b => (b.id === updated.id ? updated : b))
       )
     } catch (err: any) {
       console.error(err)
-      alert(err.message || "Could not save budget")   // quick feedback – customise as you like
+      alert(err.message || "Could not save budget")
     } finally {
       setDialogOpen(false)
       setEditingBudget(null)
@@ -101,12 +99,10 @@ export default function BudgetPage() {
     }
   }
 
-
-  // Fetch budgets from backend
   useEffect(() => {
     async function fetchBudgets() {
       try {
-        const response = await fetch("http://localhost:8000/budget/getUserBudgets/", {
+        const response = await fetch("http://127.0.0.1:8000/budget/getAllBudget/", {
           method: "GET",
           credentials: "include",
         })
@@ -114,7 +110,7 @@ export default function BudgetPage() {
         if (!response.ok) throw new Error("Failed to fetch budgets")
 
         const data = await response.json()
-        setBudgets(Array.isArray(data.budgets) ? data.budgets : [])
+        setBudgets(Array.isArray(data) ? data : [])
       } catch (err: any) {
         setError(err.message || "Something went wrong")
       } finally {
@@ -140,7 +136,7 @@ export default function BudgetPage() {
         <h1 className="text-2xl font-bold">Manage your Budgets</h1>
       </div>
 
-      {/* Overview Card */}
+      {/* Overview */}
       <Card>
         <CardHeader>
           <CardTitle>Budget Overview</CardTitle>
@@ -157,7 +153,7 @@ export default function BudgetPage() {
         </CardContent>
       </Card>
 
-      {/* Budget Table */}
+      {/* Table */}
       <Card>
         <CardHeader>
           <CardTitle>All Budgets</CardTitle>
@@ -166,6 +162,7 @@ export default function BudgetPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>User</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Spent ($)</TableHead>
                 <TableHead>Limit ($)</TableHead>
@@ -180,7 +177,7 @@ export default function BudgetPage() {
                   <TableCell>{budget.limit}</TableCell>
                   <TableCell className="flex gap-2">
                     <Button variant="ghost" size="sm" onClick={() => handleEditBudget(budget)}>
-                      <Edit className="w-4 h-4" />
+                      <Edit className="w-4 h-4 mr-1" />
                       Edit
                     </Button>
                   </TableCell>
@@ -191,28 +188,23 @@ export default function BudgetPage() {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Budget Dialog */}
+      {/* Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Budget</DialogTitle>
-            <DialogDescription>
-              Set your desired limit for this budget category
-            </DialogDescription>
+            <DialogDescription>Set your desired limit for this budget category</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Select
-                value={newBudget.category}
-                disabled
-              >
+              <Label>Category</Label>
+              <Select value={newBudget.category} disabled>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(categories).map((category) => (
+                  {categories.map((category) => (
                     <SelectItem key={category} value={category}>
                       {category}
                     </SelectItem>
@@ -222,17 +214,16 @@ export default function BudgetPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="limit">Budget Limit ($)</Label>
+              <Label>Budget Limit ($)</Label>
               <div className="flex items-center gap-4">
                 <Slider
-                  value={[Number(newBudget.limit)]}
+                  value={[newBudget.limit]}
                   min={0}
                   max={2000}
                   step={50}
                   onValueChange={(value) => setNewBudget({ ...newBudget, limit: value[0] })}
                 />
                 <Input
-                  id="limit"
                   type="number"
                   className="w-24"
                   min={0}

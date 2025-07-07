@@ -60,22 +60,23 @@ export default function AddExpensePage() {
 
     try {
       // In a real implementation, you would send data to your Django backend
-      // const formData = new FormData()
-      // formData.append('name', name)
-      // formData.append('amount', amount)
-      // formData.append('category', category)
-      // formData.append('date', format(date, 'yyyy-MM-dd'))
-      // formData.append('notes', notes)
-      // if (receipt) formData.append('receipt', receipt)
+      const formData = new FormData()
+      formData.append('name', name)
+      formData.append('amount', amount)
+      formData.append('category', category)
+      formData.append('date', format(date, 'yyyy-MM-dd'))
+      formData.append('notes', notes)
+      if (receipt) formData.append('receipt', receipt)
 
-      // const response = await fetch('/api/expenses', {
-      //   method: 'POST',
-      //   body: formData,
-      // })
+      const response = await fetch('http://127.0.0.1:8000/expense/setExpense/', {
+        method: 'POST',
+        body: formData,
+      })
 
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
+      if (!response.ok) {
+        throw new Error("Failed to add expense")
+      }
       router.push("/dashboard/expenses")
     } catch (error) {
       console.error("Error adding expense:", error)

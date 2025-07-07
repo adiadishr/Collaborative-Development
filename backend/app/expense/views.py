@@ -6,7 +6,7 @@ import datetime
 
 @csrf_exempt
 def set_expense_view(request):
-    print("set_expense_view called")
+    
     if request.method == 'POST':
         try:
             name = request.POST.get('name')
@@ -15,7 +15,8 @@ def set_expense_view(request):
             date = request.POST.get('date')
             notes = request.POST.get('notes', '')
             receipt = request.FILES.get('receipt')  # Get uploaded file
-
+            
+            print(f"Received data: name={name}, amount={amount}, category={category}, date={date}, notes={notes}, receipt={receipt}")
 
             if not name or not amount or not category or not date:
                 return JsonResponse({'message': 'Missing required fields'}, status=400)

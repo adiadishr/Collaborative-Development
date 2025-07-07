@@ -49,26 +49,29 @@ def set_budget(request):
 
 
 @csrf_exempt
-def get_all_budget(request):
-    if request.method == "GET":
+def get_all_budget_view(request):
+    if request.method == 'GET':
         budgets = Budget.objects.all()
         data = []
 
         for b in budgets:
-            data.append(
-                {
-                    "id": b.id,
-                    "user_id": b.user.id,
-                    "username": b.user.username,
-                    "category": b.category,
-                    "limit": float(b.limit),
-                    "spent": float(b.spent),
-                }
-            )
+            try:
+                user = User.objects.get(id=b.user_id)
+                data.append({
+                    'id': b.id,
+                    'user_id': user.id,
+                    'username': user.username,
+                    'category': b.category,
+                    'limit': float(b.limit),
+                    'spent': float(b.spent),
+                })
+            except User.DoesNotExist:
+                # Skip this budget if user doesn't exist
+                continue
 
         return JsonResponse(data, safe=False, status=200)
 
-    return JsonResponse({"message": "Invalid request method"}, status=405)
+    return JsonResponse({'message': 'Invalid request method.'}, status=405)
 
 
 @csrf_exempt
